@@ -26,7 +26,7 @@ jobs:
         run: docker build -t $IMAGE:${{ github.sha }} ./app
 
       - name: Lancer un conteneur de test
-        run: docker run -d --name test-app -p 8080:80 $IMAGE:${{ github.sha }}
+        run: docker run -d --name test-app -p 8080:8000 $IMAGE:${{ github.sha }}
 
       - name: Tester que le site repond
         run: |
@@ -55,7 +55,7 @@ jobs:
         run: |
           docker rm -f $CONTAINER || true
           docker run -d --name $CONTAINER --restart unless-stopped \
-            -p $PORT:80 $IMAGE:latest
+            -p $PORT:8000 $IMAGE:latest
 
       - name: Verifier le deploiement
         run: |

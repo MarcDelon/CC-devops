@@ -1,3 +1,6 @@
-# Fichiers a ne pas copier dans l'image (ils seraient servis par Nginx)
+# Fichiers a ne pas copier dans l'image
 Dockerfile
 .dockerignore
+__pycache__/
+*.pyc
+.pytest_cache/

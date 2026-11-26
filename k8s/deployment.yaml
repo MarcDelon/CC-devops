@@ -1,0 +1,52 @@
+# Deployment Kubernetes : fait tourner 2 copies (pods) de l'application.
+# Le pipeline Jenkins remplace IMAGE_TAG par le numero du build.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cc-devops-app
+  labels:
+    app: cc-devops-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cc-devops-app
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0      # mise a jour sans coupure : un nouveau pod avant d'arreter un ancien
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: cc-devops-app
+      annotations:
+        prometheus.io/scrape: "true"   # Prometheus lit /metrics sur chaque pod
+        prometheus.io/port: "8000"
+        prometheus.io/path: /metrics
+    spec:
+      containers:
+        - name: app
+          image: cc-devops-app:IMAGE_TAG
+          imagePullPolicy: Never       # image construite localement et chargee dans Minikube
+          ports:
+            - containerPort: 8000
+          readinessProbe:              # le pod ne recoit du trafic que s'il repond
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:               # Kubernetes redemarre le pod s'il ne repond plus
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi

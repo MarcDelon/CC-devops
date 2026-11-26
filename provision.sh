@@ -24,6 +24,14 @@ https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_C
   usermod -aG docker vagrant
 fi
 
+# DNS des conteneurs : celui de la box Wi-Fi (192.168.1.1) n'est pas joignable depuis
+# la VM, on utilise le DNS de VirtualBox (10.0.2.3) et un DNS public.
+# live-restore : les conteneurs continuent de tourner pendant un redemarrage de Docker.
+if ! grep -q '"live-restore"' /etc/docker/daemon.json 2>/dev/null; then
+  echo '{"dns": ["10.0.2.3", "1.1.1.1"], "live-restore": true}' > /etc/docker/daemon.json
+  systemctl restart docker
+fi
+
 # 2. Nettoyage de l'ancienne todo app ou anciens conteneurs
 docker rm -f todo-app >/dev/null 2>&1 || true
 docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
@@ -34,7 +42,7 @@ docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
 docker build -t cc-devops-app:latest "$APP_DIR"
 
 # 4. Lancement du conteneur
-docker run -d   --name "$CONTAINER"   --restart unless-stopped   -p "$PUBLIC_PORT:80"   cc-devops-app:latest
+docker run -d   --name "$CONTAINER"   --restart unless-stopped   -p "$PUBLIC_PORT:8000"   cc-devops-app:latest
 
 docker ps --filter "name=$CONTAINER"
 

@@ -1,0 +1,39 @@
+# Autorise Prometheus (qui tourne hors du cluster) a decouvrir les pods
+# pour lire les metriques de chacun d'eux.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus-discovery
+rules:
+  - apiGroups: [""]
+    resources: [pods, services, endpoints, nodes]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus-discovery
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus-discovery
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: default
+---
+# Jeton permanent du ServiceAccount (lu par Prometheus)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: prometheus-token
+  namespace: default
+  annotations:
+    kubernetes.io/service-account.name: prometheus
+type: kubernetes.io/service-account-token
