@@ -1,0 +1,140 @@
+---
+# Playbook execute par Vagrant (provisioner ansible_local) dans la VM.
+# Installe : kubectl + Minikube (Kubernetes), puis Jenkins, Prometheus,
+# node-exporter et Grafana dans des conteneurs Docker.
+- name: Outils DevOps dans la VM Vagrant
+  hosts: all
+  become: true
+
+  vars:
+    devops_dir: /opt/devops
+    app_user: vagrant
+    minikube_memory: 2200        # Mo ; minimum accepte par minikube : 1800
+    minikube_cpus: 1             # la VM n'a qu'1 CPU (Hyper-V actif sur l'hote)
+
+  pre_tasks:
+    - name: Verifier l'espace disque libre dans la VM (au moins 8 Go)
+      ansible.builtin.assert:
+        that: (ansible_mounts | selectattr('mount', 'equalto', '/') | first).size_available > 8 * 1024**3
+        fail_msg: "Moins de 8 Go libres sur / : Minikube + Jenkins + monitoring ne tiendront pas."
+
+    - name: Docker doit etre installe (provision.sh)
+      ansible.builtin.command: docker --version
+      changed_when: false
+
+    - name: Paquets necessaires a Minikube
+      ansible.builtin.apt:
+        name: [curl, conntrack, ca-certificates]
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+  tasks:
+    # ------------------------------------------------------------ Kubernetes
+    - name: Recuperer la derniere version stable de kubectl
+      ansible.builtin.uri:
+        url: https://dl.k8s.io/release/stable.txt
+        return_content: true
+      register: kube_stable
+
+    - name: Installer kubectl
+      ansible.builtin.get_url:
+        url: "https://dl.k8s.io/release/{{ kube_stable.content | trim }}/bin/linux/amd64/kubectl"
+        dest: /usr/local/bin/kubectl
+        mode: "0755"
+
+    - name: Installer Minikube
+      ansible.builtin.get_url:
+        url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+        dest: /usr/local/bin/minikube
+        mode: "0755"
+
+    - name: Etat actuel de Minikube
+      ansible.builtin.command: minikube status
+      become_user: "{{ app_user }}"
+      register: minikube_status
+      changed_when: false
+      failed_when: false
+
+    - name: Demarrer Minikube (driver docker)
+      # --force : minikube demande 2 CPU, la VM n'en a qu'1
+      ansible.builtin.command: >
+        minikube start --driver=docker --cpus={{ minikube_cpus }}
+        --memory={{ minikube_memory }} --force
+      become_user: "{{ app_user }}"
+      when: minikube_status.rc != 0
+
+    - name: Verifier le cluster Kubernetes
+      ansible.builtin.command: kubectl get nodes -o wide
+      become_user: "{{ app_user }}"
+      register: kube_nodes
+      changed_when: false
+      retries: 10
+      delay: 15
+      until: kube_nodes.rc == 0 and ' Ready ' in kube_nodes.stdout
+
+    # ------------------------------------------- Jenkins + Prometheus + Grafana
+    - name: Dossiers de configuration
+      ansible.builtin.file:
+        path: "{{ devops_dir }}/{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - ""
+        - prometheus
+        - grafana/provisioning/datasources
+
+    - name: Copier docker-compose et configurations
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ devops_dir }}/{{ item.dest }}"
+        mode: "0644"
+      loop:
+        - { src: files/docker-compose.yml, dest: docker-compose.yml }
+        - { src: files/prometheus.yml, dest: prometheus/prometheus.yml }
+        - { src: files/grafana-datasource.yml, dest: grafana/provisioning/datasources/prometheus.yml }
+
+    - name: Demarrer Jenkins, Prometheus, node-exporter et Grafana
+      ansible.builtin.command: docker compose up -d
+      args:
+        chdir: "{{ devops_dir }}"
+      register: compose_up
+      changed_when: "'Started' in compose_up.stderr or 'Created' in compose_up.stderr"
+
+    - name: Attendre que les services repondent
+      ansible.builtin.uri:
+        url: "{{ item }}"
+        status_code: [200, 403]
+      loop:
+        - http://localhost:9090/-/ready        # Prometheus
+        - http://localhost:3000/api/health     # Grafana
+        - http://localhost:8080/login          # Jenkins
+      register: health
+      retries: 30
+      delay: 10
+      until: health.status in [200, 403]
+
+    - name: Mot de passe initial de Jenkins
+      ansible.builtin.command: docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+      register: jenkins_pwd
+      changed_when: false
+      failed_when: false
+
+    - name: Versions installees
+      ansible.builtin.shell: |
+        echo "ansible : $(ansible --version | head -1)"
+        echo "kubectl : $(kubectl version --client 2>/dev/null | head -1)"
+        echo "minikube: $(minikube version --short)"
+      become_user: "{{ app_user }}"
+      register: versions
+      changed_when: false
+
+    - name: Recapitulatif
+      ansible.builtin.debug:
+        msg:
+          - "{{ versions.stdout_lines }}"
+          - "{{ kube_nodes.stdout_lines }}"
+          - "Jenkins    : http://localhost:8080  (mot de passe initial : {{ jenkins_pwd.stdout | default('voir docker logs jenkins') }})"
+          - "Prometheus : http://localhost:9090"
+          - "Grafana    : http://localhost:3000  (admin / admin, a changer a la 1re connexion)"
+          - "Application Web: http://localhost:5111"

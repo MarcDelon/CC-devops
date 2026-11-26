@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  # Prometheus se surveille lui-meme
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Metriques de la VM (CPU, RAM, disque, reseau)
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter:9100"]

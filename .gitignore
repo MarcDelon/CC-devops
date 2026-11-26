@@ -1,0 +1,8 @@
+# Donnees internes de Vagrant (etat de la VM, cles SSH) : propres a chaque PC
+.vagrant/
+
+# Fichiers generes / systeme
+*.log
+*.pdf
+Thumbs.db
+.DS_Store
