@@ -74,7 +74,10 @@
       until: kube_nodes.rc == 0 and ' Ready ' in kube_nodes.stdout
 
     # ------------------------------------------- Jenkins + Prometheus + Grafana
+    # Tag "monitoring" : relancer uniquement cette partie avec
+    #   ansible-playbook playbook.yml --tags monitoring
     - name: Dossiers de configuration
+      tags: [monitoring]
       ansible.builtin.file:
         path: "{{ devops_dir }}/{{ item }}"
         state: directory
@@ -83,8 +86,10 @@
         - ""
         - prometheus
         - grafana/provisioning/datasources
+        - grafana/provisioning/dashboards/json
 
     - name: Copier docker-compose et configurations
+      tags: [monitoring]
       ansible.builtin.copy:
         src: "{{ item.src }}"
         dest: "{{ devops_dir }}/{{ item.dest }}"
@@ -93,15 +98,25 @@
         - { src: files/docker-compose.yml, dest: docker-compose.yml }
         - { src: files/prometheus.yml, dest: prometheus/prometheus.yml }
         - { src: files/grafana-datasource.yml, dest: grafana/provisioning/datasources/prometheus.yml }
+        - { src: files/grafana-dashboards.yml, dest: grafana/provisioning/dashboards/dashboards.yml }
+        - { src: files/dashboard-cc-devops.json, dest: grafana/provisioning/dashboards/json/cc-devops.json }
 
-    - name: Demarrer Jenkins, Prometheus, node-exporter et Grafana
-      ansible.builtin.command: docker compose up -d
+    - name: Demarrer Jenkins, Prometheus, exporters et Grafana
+      tags: [monitoring]
+      ansible.builtin.command: docker compose up -d --remove-orphans
       args:
         chdir: "{{ devops_dir }}"
       register: compose_up
       changed_when: "'Started' in compose_up.stderr or 'Created' in compose_up.stderr"
 
+    - name: Recharger Prometheus et Grafana (nouvelle configuration)
+      tags: [monitoring]
+      ansible.builtin.command: docker compose restart prometheus grafana
+      args:
+        chdir: "{{ devops_dir }}"
+
     - name: Attendre que les services repondent
+      tags: [monitoring]
       ansible.builtin.uri:
         url: "{{ item }}"
         status_code: [200, 403]

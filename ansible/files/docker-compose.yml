@@ -38,6 +38,35 @@ services:
       - /:/host:ro,rslave
     mem_limit: 64m
 
+  # Teste le site de l'exterieur : repond-il ? code HTTP ? temps de reponse ?
+  blackbox:
+    image: prom/blackbox-exporter:v0.25.0
+    container_name: blackbox
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # = la VM, ou le site ecoute sur 5111
+    mem_limit: 64m
+
+  # Mesure le CPU, la RAM et le reseau de chaque conteneur Docker
+  cadvisor:
+    # >= v0.54 : compatible avec le stockage "containerd snapshotter" de Docker 29
+    image: ghcr.io/google/cadvisor:v0.61.1
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    command:
+      - --docker_only=true
+      - --housekeeping_interval=15s
+      - --disable_metrics=disk,diskIO,tcp,udp,percpu,sched,process,hugetlb,referenced_memory,cpu_topology,resctrl
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    devices:
+      - /dev/kmsg
+    mem_limit: 200m
+
   grafana:
     image: grafana/grafana:11.3.0
     container_name: grafana

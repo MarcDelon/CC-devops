@@ -45,6 +45,23 @@ config.vm.network "forwarded_port", guest: 5111, host: 5111, host_ip: "0.0.0.0"
 L'application est donc accessible depuis n'importe quel appareil du même réseau en tapant
 l'adresse IP du PC hôte : **http://192.168.1.175:5111** (adresse obtenue avec `ipconfig`).
 
+## Observabilité (Prometheus + Grafana)
+
+| Collecteur        | Ce qu'il mesure                                              | Job Prometheus |
+|-------------------|--------------------------------------------------------------|----------------|
+| blackbox-exporter | L'application : en ligne ?, code HTTP, temps de réponse      | `site`         |
+| node-exporter     | La VM : CPU, RAM, disque, réseau                             | `node`         |
+| cAdvisor          | Chaque conteneur Docker : CPU, RAM                           | `conteneurs`   |
+
+Grafana charge automatiquement le tableau de bord **CC DevOps - Application et VM**
+(`ansible/files/dashboard-cc-devops.json`, dossier « CC DevOps »).
+
+Relancer uniquement la partie supervision dans la VM :
+
+```bash
+cd /vagrant/ansible && ansible-playbook -i localhost, -c local playbook.yml --tags monitoring
+```
+
 | Service     | Adresse                  |
 |-------------|--------------------------|
 | Application | http://localhost:5111 ou http://192.168.1.175:5111 |

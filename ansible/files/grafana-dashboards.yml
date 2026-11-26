@@ -1,0 +1,9 @@
+# Grafana charge automatiquement les tableaux de bord JSON de ce dossier
+apiVersion: 1
+providers:
+  - name: cc-devops
+    folder: CC DevOps
+    type: file
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/json
