@@ -27,8 +27,11 @@ services:
       - ./prometheus/k8s:/etc/prometheus/k8s:ro     # jeton + certificat pour l'API Kubernetes
       - prometheus_data:/prometheus
     networks:
-      - default
-      - minikube          # pour joindre l'API Kubernetes de Minikube (192.168.49.2)
+      default: {}
+      minikube:           # pour joindre l'API Kubernetes de Minikube (192.168.49.2)
+        # adresse FIXE : sinon, si Prometheus demarre avant Minikube (apres un
+        # redemarrage de la VM), il prend 192.168.49.2 et Minikube ne demarre plus
+        ipv4_address: 192.168.49.10
     extra_hosts:
       - "host.docker.internal:host-gateway"
     mem_limit: 300m
