@@ -33,9 +33,21 @@ vagrant up          # crée la VM et installe tout
 vagrant ssh         # se connecter à la VM
 ```
 
+## Accès à l'application par adresse IP
+
+Le `Vagrantfile` redirige le port 5111 de la VM vers le port 5111 de l'hôte, sur **toutes** ses
+cartes réseau (`host_ip: "0.0.0.0"`) :
+
+```ruby
+config.vm.network "forwarded_port", guest: 5111, host: 5111, host_ip: "0.0.0.0"
+```
+
+L'application est donc accessible depuis n'importe quel appareil du même réseau en tapant
+l'adresse IP du PC hôte : **http://192.168.1.175:5111** (adresse obtenue avec `ipconfig`).
+
 | Service     | Adresse                  |
 |-------------|--------------------------|
-| Application | http://localhost:5111    |
+| Application | http://localhost:5111 ou http://192.168.1.175:5111 |
 | Prometheus  | http://localhost:9090    |
 | Grafana     | http://localhost:3000    |
 | Jenkins     | http://localhost:8080    |
