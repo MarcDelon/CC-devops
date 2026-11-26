@@ -1,0 +1,3 @@
+# Fichiers a ne pas copier dans l'image (ils seraient servis par Nginx)
+Dockerfile
+.dockerignore

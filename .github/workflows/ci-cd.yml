@@ -1,0 +1,67 @@
+# Pipeline CI/CD : a chaque push sur main
+#   1) CI  (serveur GitHub)       : construit l'image Docker et teste le site
+#   2) CD  (runner dans la VM)    : reconstruit l'image et remplace le conteneur local
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:        # bouton "Run workflow" pour relancer a la main
+
+env:
+  IMAGE: cc-devops-app
+  CONTAINER: static-web-app
+  PORT: 5111
+
+jobs:
+  # ---------------------------------------------------------------- CI
+  ci:
+    name: CI - build et test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@v4
+
+      - name: Construire l'image Docker
+        run: docker build -t $IMAGE:${{ github.sha }} ./app
+
+      - name: Lancer un conteneur de test
+        run: docker run -d --name test-app -p 8080:80 $IMAGE:${{ github.sha }}
+
+      - name: Tester que le site repond
+        run: |
+          sleep 3
+          curl -fsS http://localhost:8080/ -o page.html
+          grep -q "</html>" page.html && echo "index.html OK"
+          curl -fsS -o /dev/null http://localhost:8080/style.css && echo "style.css OK"
+
+      - name: Nettoyer
+        if: always()
+        run: docker rm -f test-app || true
+
+  # ---------------------------------------------------------------- CD
+  cd:
+    name: CD - deploiement dans la VM
+    needs: ci                       # ne deploie que si la CI est verte
+    runs-on: [self-hosted, vagrant] # le runner installe dans la VM Vagrant
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@v4
+
+      - name: Construire l'image
+        run: docker build -t $IMAGE:latest ./app
+
+      - name: Remplacer le conteneur
+        run: |
+          docker rm -f $CONTAINER || true
+          docker run -d --name $CONTAINER --restart unless-stopped \
+            -p $PORT:80 $IMAGE:latest
+
+      - name: Verifier le deploiement
+        run: |
+          sleep 3
+          curl -fsS -o /dev/null http://localhost:$PORT/ && echo "Site en ligne sur le port $PORT"
+          docker ps --filter "name=$CONTAINER"
+
+      - name: Supprimer les anciennes images
+        run: docker image prune -f

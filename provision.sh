@@ -28,18 +28,18 @@ fi
 docker rm -f todo-app >/dev/null 2>&1 || true
 docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
 
-# 3. Lancement du conteneur Nginx avec montage direct du dossier /vagrant/app (Live Reload)
-docker run -d \
-  --name "$CONTAINER" \
-  --restart unless-stopped \
-  -p "$PUBLIC_PORT:80" \
-  -v "$APP_DIR:/usr/share/nginx/html:ro" \
-  nginx:alpine
+# 3. Construction de l'image Docker de l'application (app/Dockerfile)
+#    Meme methode que le job CD de GitHub Actions : l'image est figee,
+#    une modification du code n'est visible qu'apres un nouveau deploiement.
+docker build -t cc-devops-app:latest "$APP_DIR"
+
+# 4. Lancement du conteneur
+docker run -d   --name "$CONTAINER"   --restart unless-stopped   -p "$PUBLIC_PORT:80"   cc-devops-app:latest
 
 docker ps --filter "name=$CONTAINER"
 
 echo "============================================="
-echo " Application Web HTML/CSS demarree (Live Reload actif)"
-echo "  - Vos modifications dans app/ sont directes !"
+echo " Application Web HTML/CSS demarree"
+echo "  - Mises a jour automatiques : git push -> GitHub Actions"
 echo "  - URL : http://localhost:$PUBLIC_PORT"
 echo "============================================="
