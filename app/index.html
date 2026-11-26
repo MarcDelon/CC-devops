@@ -3,15 +3,124 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Présentation - NZENANG MARC DELON</title>
+  <title>NZENANG TCHOUANTCHEU Marc Delon - Présentation</title>
+  <meta name="description" content="Présentation de Marc Delon NZENANG TCHOUANTCHEU, étudiant en Bachelor 3 IA & Big Data à Keyce Informatique.">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="card">
-    <h1>Bonjour, je m'appelle <span class="highlight">NZENANG TCHOUANTCHEU MARC DELON</span></h1>
-    <p class="subtitle">
-      Je suis étudiant en <strong>Bachelor 3 IA & Big Data</strong> à <strong>Keyce Informatique</strong><br>et je suis developpeur junior a <a>Karbura SA</a>.
-    </p>
-  </div>
+  <header class="topbar">
+    <div class="wrap topbar__inner">
+      <span class="monogram" aria-hidden="true">MD</span>
+      <span class="topbar__name">Marc Delon N.</span>
+      <span class="status" id="status" title="Version et pod qui ont servi cette page">
+        <span class="status__dot" aria-hidden="true"></span>
+        <span id="status-text">En ligne</span>
+      </span>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <p class="eyebrow">Bonjour, je m'appelle</p>
+      <h1 class="hero__name">
+        NZENANG TCHOUANTCHEU<br>
+        <span class="hero__first">Marc Delon</span>
+      </h1>
+      <ul class="facts">
+        <li>
+          <span class="facts__label">Formation</span>
+          <span class="facts__value">Bachelor 3 IA &amp; Big Data, Keyce Informatique</span>
+        </li>
+        <li>
+          <span class="facts__label">Poste</span>
+          <span class="facts__value">Développeur junior chez Karbura SA</span>
+        </li>
+      </ul>
+    </section>
+
+    <section class="section" aria-labelledby="titre-parcours">
+      <div class="section__head">
+        <h2 id="titre-parcours">Le chemin de cette page</h2>
+        <p>Chaque modification de ce fichier suit la même chaîne automatique avant d'arriver dans votre navigateur.</p>
+      </div>
+      <ol class="pipeline">
+        <li class="step">
+          <span class="step__num">01</span>
+          <h3>Code</h3>
+          <p>Modification envoyée sur GitHub avec <code>git push</code>.</p>
+          <span class="step__tool">Git · GitHub</span>
+        </li>
+        <li class="step">
+          <span class="step__num">02</span>
+          <h3>Intégration</h3>
+          <p>Jenkins détecte le commit et lance les tests automatiques.</p>
+          <span class="step__tool">Jenkins · pytest</span>
+        </li>
+        <li class="step">
+          <span class="step__num">03</span>
+          <h3>Conteneur</h3>
+          <p>L'application Python est emballée dans une image.</p>
+          <span class="step__tool">Docker</span>
+        </li>
+        <li class="step">
+          <span class="step__num">04</span>
+          <h3>Déploiement</h3>
+          <p>Deux pods mis à jour l'un après l'autre, sans coupure.</p>
+          <span class="step__tool">Kubernetes</span>
+        </li>
+        <li class="step">
+          <span class="step__num">05</span>
+          <h3>Observabilité</h3>
+          <p>Visites, temps de réponse et santé de l'infrastructure.</p>
+          <span class="step__tool">Prometheus · Grafana</span>
+        </li>
+      </ol>
+    </section>
+
+    <section class="section" aria-labelledby="titre-outils">
+      <div class="section__head">
+        <h2 id="titre-outils">Outils utilisés dans ce projet</h2>
+      </div>
+      <div class="tools">
+        <div class="tools__group">
+          <h3>Application</h3>
+          <ul class="chips"><li>Python</li><li>Flask</li><li>HTML / CSS</li></ul>
+        </div>
+        <div class="tools__group">
+          <h3>Infrastructure</h3>
+          <ul class="chips"><li>Vagrant</li><li>VirtualBox</li><li>Ansible</li><li>Docker</li><li>Kubernetes</li></ul>
+        </div>
+        <div class="tools__group">
+          <h3>CI/CD</h3>
+          <ul class="chips"><li>Jenkins</li><li>GitHub Actions</li></ul>
+        </div>
+        <div class="tools__group">
+          <h3>Observabilité</h3>
+          <ul class="chips"><li>Prometheus</li><li>Grafana</li></ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer__inner">
+      <span>Contrôle continu DevOps · Keyce Informatique</span>
+      <span id="served-by">Page servie par l'application Python</span>
+    </div>
+  </footer>
+
+  <script>
+    // Affiche la version deployee et le pod Kubernetes qui a servi la page
+    fetch('/health', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (h) {
+        document.getElementById('status-text').textContent = 'En ligne · ' + h.version;
+        document.getElementById('served-by').textContent = 'Servie par ' + h.pod;
+      })
+      .catch(function () {
+        document.getElementById('status').classList.add('status--static');
+        document.getElementById('status-text').textContent = 'Aperçu local';
+      });
+  </script>
 </body>
 </html>
