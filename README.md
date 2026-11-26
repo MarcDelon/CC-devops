@@ -1,15 +1,33 @@
-# CC DevOps - Vagrant, Docker, GitHub Actions, Prometheus, Grafana
+# CC DevOps - Vagrant, Docker, Jenkins, Kubernetes, GitHub Actions, Prometheus, Grafana
 
 Projet de contrôle continu DevOps (Bachelor 3 IA & Big Data - Keyce Informatique).
 
 ## Objectif
 
 - Créer une machine virtuelle Ubuntu 22.04 (Jammy) avec **Vagrant**.
-- Déployer une application web qui tourne dans **Docker** dans la VM.
-- Exposer l'application : accessible en tapant l'adresse IP (`http://<IP>:5111`).
-- Mettre en place un processus **CI/CD avec GitHub Actions** : à chaque modification du code,
-  l'application est reconstruite et le conteneur local est mis à jour automatiquement.
-- Ajouter l'**observabilité** avec **Prometheus** et **Grafana**.
+- Une application web en **Python (Flask)** : page de présentation + métriques sur `/metrics`.
+- **CI/CD avec Jenkins** : à chaque `git push`, Jenkins récupère le code, lance les tests,
+  construit l'image **Docker** et la déploie sur **Kubernetes** (Minikube) → `http://<IP>:5112`.
+- **CI/CD avec GitHub Actions** : même application déployée dans un conteneur Docker → `http://<IP>:5111`.
+- **Observabilité** avec **Prometheus** et **Grafana** : infrastructure (VM, conteneurs, pods)
+  et métriques de l'application (visites, requêtes, erreurs, temps de réponse).
+
+## Chaîne Jenkins -> Kubernetes
+
+```
+git push -> GitHub -> Jenkins (Poll SCM, 2 min) -> agent "vm-vagrant" (la VM)
+         -> docker build -> tests (pytest) -> minikube image load
+         -> kubectl apply (Deployment 2 pods + Service NodePort 30080)
+         -> http://<IP>:5112
+```
+
+| Fichier | Rôle |
+|---------|------|
+| `Jenkinsfile` | Les étapes du pipeline |
+| `k8s/deployment.yaml`, `k8s/service.yaml` | Déploiement Kubernetes (2 pods, mise à jour sans coupure) |
+| `jenkins/init-cc-devops.groovy` | Crée l'agent `vm-vagrant` et le job `cc-devops` relié à GitHub |
+| `jenkins/install-agent.sh` | Installe l'agent Jenkins dans la VM (service systemd) |
+| `k8s/expose-app.sh` | Expose l'application Kubernetes sur le port 5112 |
 
 ## Structure
 

@@ -46,10 +46,9 @@ if (job == null) {
 }
 job.description = 'CI/CD : GitHub -> tests -> image Docker -> Kubernetes (Minikube). Declenche par les git push (Poll SCM).'
 job.definition = definition
+// Declencheur : Jenkins interroge GitHub toutes les 2 minutes (meme reglage que le Jenkinsfile)
+job.removeProperty(org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty)
+job.addProperty(new org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty(
+        [new hudson.triggers.SCMTrigger('H/2 * * * *')]))
 job.save()
-println "[cc-devops] job cc-devops relie a ${REPO} (Jenkinsfile)"
-
-// premier build : il enregistre le declencheur pollSCM du Jenkinsfile
-if (job.lastBuild == null || job.lastBuild.number < 2 || !job.lastBuild.result?.toString()?.equals('SUCCESS')) {
-    job.scheduleBuild2(10)
-}
+println "[cc-devops] job cc-devops relie a ${REPO} (Jenkinsfile), Poll SCM toutes les 2 min"

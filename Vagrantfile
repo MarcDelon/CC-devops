@@ -11,8 +11,11 @@ Vagrant.configure("2") do |config|
   # config.vm.network "private_network", ip: "192.168.56.10"
 
   # Ports exposés vers Windows
-  # Todo-list (0.0.0.0 = accessible depuis le réseau local)
+  # Application (0.0.0.0 = accessible depuis le réseau local, par l'IP du PC)
+  #   5111 : version déployée par GitHub Actions (conteneur Docker)
+  #   5112 : version déployée par Jenkins sur Kubernetes (Minikube)
   config.vm.network "forwarded_port", guest: 5111, host: 5111, host_ip: "0.0.0.0", auto_correct: false
+  config.vm.network "forwarded_port", guest: 5112, host: 5112, host_ip: "0.0.0.0", auto_correct: false
   config.vm.network "forwarded_port", guest: 8080, host: 8080   # Jenkins
   config.vm.network "forwarded_port", guest: 9090, host: 9090   # Prometheus
   config.vm.network "forwarded_port", guest: 3000, host: 3000   # Grafana

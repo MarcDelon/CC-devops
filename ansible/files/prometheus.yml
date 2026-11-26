@@ -32,3 +32,54 @@ scrape_configs:
         replacement: application-5111
       - target_label: __address__
         replacement: blackbox:9115
+
+  # L'application deployee par Jenkins sur Kubernetes (port 5112), vue de l'exterieur
+  - job_name: site-k8s
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets: ["http://host.docker.internal:5112/health"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - target_label: instance
+        replacement: application-k8s-5112
+      - target_label: __address__
+        replacement: blackbox:9115
+
+  # Metriques internes de l'application (visites, requetes, temps de reponse),
+  # lues sur CHAQUE pod Kubernetes en passant par l'API de Minikube.
+  # Prometheus decouvre les pods automatiquement (ceux annotes prometheus.io/scrape=true).
+  - job_name: application-k8s
+    scheme: https
+    tls_config:
+      ca_file: /etc/prometheus/k8s/ca.crt
+    authorization:
+      credentials_file: /etc/prometheus/k8s/token
+    kubernetes_sd_configs:
+      - role: pod
+        api_server: https://192.168.49.2:8443     # API Kubernetes de Minikube
+        namespaces:
+          names: [default]
+        tls_config:
+          ca_file: /etc/prometheus/k8s/ca.crt
+        authorization:
+          credentials_file: /etc/prometheus/k8s/token
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        regex: "true"
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_phase]
+        regex: Running
+        action: keep
+      - target_label: __address__
+        replacement: 192.168.49.2:8443
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_pod_name, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        regex: (.+);(.+);(.+)
+        target_label: __metrics_path__
+        replacement: /api/v1/namespaces/$1/pods/$2:$3/proxy/metrics
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        target_label: app

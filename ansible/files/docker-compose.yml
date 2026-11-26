@@ -24,7 +24,13 @@ services:
       - --storage.tsdb.retention.time=7d
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/k8s:/etc/prometheus/k8s:ro     # jeton + certificat pour l'API Kubernetes
       - prometheus_data:/prometheus
+    networks:
+      - default
+      - minikube          # pour joindre l'API Kubernetes de Minikube (192.168.49.2)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     mem_limit: 300m
 
   node-exporter:
@@ -87,3 +93,8 @@ volumes:
   jenkins_home:
   prometheus_data:
   grafana_data:
+
+networks:
+  default:
+  minikube:
+    external: true        # reseau cree par "minikube start"

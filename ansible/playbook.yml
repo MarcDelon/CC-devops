@@ -87,6 +87,39 @@
         - prometheus
         - grafana/provisioning/datasources
         - grafana/provisioning/dashboards/json
+        - prometheus/k8s
+
+    - name: Acces de Prometheus a Kubernetes (ServiceAccount + droits)
+      tags: [monitoring]
+      ansible.builtin.command: kubectl apply -f /vagrant/k8s/prometheus-rbac.yaml
+      become_user: "{{ app_user }}"
+      register: rbac
+      changed_when: "'created' in rbac.stdout or 'configured' in rbac.stdout"
+
+    - name: Recuperer le jeton du ServiceAccount prometheus
+      tags: [monitoring]
+      ansible.builtin.shell: kubectl get secret prometheus-token -o jsonpath='{.data.token}' | base64 -d
+      become_user: "{{ app_user }}"
+      register: k8s_token
+      changed_when: false
+      retries: 10
+      delay: 3
+      until: k8s_token.stdout | length > 0
+
+    - name: Jeton pour Prometheus
+      tags: [monitoring]
+      ansible.builtin.copy:
+        content: "{{ k8s_token.stdout }}"
+        dest: "{{ devops_dir }}/prometheus/k8s/token"
+        mode: "0644"
+
+    - name: Certificat de l'autorite de Minikube pour Prometheus
+      tags: [monitoring]
+      ansible.builtin.copy:
+        src: "/home/{{ app_user }}/.minikube/ca.crt"
+        remote_src: true
+        dest: "{{ devops_dir }}/prometheus/k8s/ca.crt"
+        mode: "0644"
 
     - name: Copier docker-compose et configurations
       tags: [monitoring]
